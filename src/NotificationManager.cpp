@@ -1,7 +1,6 @@
 #include "NotificationManager.h"
 
 #include <cstdio>  // snprintf
-#include <cstring>  // memeset
 #include <ctime>  // time
 #include <string>  // string, to_string
 
@@ -58,10 +57,9 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 
 
 NotificationManager::NotificationManager() :
-	_rng(std::time(0))
-{
-	std::memset(_buf, 0, sizeof(_buf));
-}
+	_rng(std::time(0)),
+	_buf{}
+{}
 
 
 NotificationManager::~NotificationManager()
