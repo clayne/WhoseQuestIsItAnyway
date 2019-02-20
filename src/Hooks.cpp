@@ -8,7 +8,6 @@
 
 #include <cassert>  // assert
 #include <cstdint>  // uintptr_t
-#include <cstdio>  // snprintf
 #include <cstdlib>  // size_t
 #include <string>  // string
 
