@@ -158,7 +158,6 @@ void InstallStoreHook()
 		++i;
 	}
 
-	std::size_t diff = CAVE_SIZE - patch.getSize();
 	while (i < CAVE_SIZE) {
 		SafeWrite8(funcBase.GetUIntPtr() + MOV_HOOK + i, NOP);
 		++i;
