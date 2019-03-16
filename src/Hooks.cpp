@@ -13,12 +13,7 @@
 
 #include "NotificationManager.h"  // NotificationManager
 
-#include "RE/BaseExtraList.h"  // BaseExtraList
-#include "RE/BGSBaseAlias.h"  // BGSBaseAlias
-#include "RE/ExtraAliasInstanceArray.h"  // ExtraAliasInstanceArray
-#include "RE/InventoryEntryData.h"  // InventoryEntryData
-#include "RE/Misc.h"  // DebugNotification
-#include "RE/TESQuest.h"  // TESQuest
+#include "RE/Skyrim.h"
 
 
 void Hook_DebugNotification(RE::InventoryEntryData* a_entryData, void* a_arg2, bool a_arg3)
@@ -54,7 +49,8 @@ void Hook_DebugNotification(RE::InventoryEntryData* a_entryData, void* a_arg2, b
 
 void InstallDropHook()
 {
-	constexpr std::uintptr_t TARGET_FUNC = 0x0088E470;
+	// 40 53 55 41 56 48 83 EC 40 48 8B 69 18
+	constexpr std::uintptr_t TARGET_FUNC = 0x0088E280;	// 1_5_73
 	constexpr std::size_t CAVE_SIZE = 7;
 	constexpr std::size_t MOV_HOOK = 0x41;
 	constexpr std::size_t POP_START = 0x4D;
@@ -130,7 +126,8 @@ void InstallDropHook()
 
 void InstallStoreHook()
 {
-	constexpr std::uintptr_t TARGET_FUNC = 0x0085EDB0;
+	// E8 ? ? ? ? 84 C0 41 0F 44 F5
+	constexpr std::uintptr_t TARGET_FUNC = 0x0085EBC0;	// 1_5_73
 	constexpr std::size_t CAVE_SIZE = 7;
 	constexpr std::size_t MOV_HOOK = 0x375;
 	constexpr std::size_t CALL_HOOK = 0x37C;
