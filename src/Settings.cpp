@@ -8,6 +8,6 @@ bool Settings::loadSettings(bool a_dumpParse)
 }
 
 
-bSetting	Settings::printQuestFormID("printQuestFormID", false, false);
-bSetting	Settings::useRandomMessages("useRandomMessages", false, false);
-iSetting	Settings::totalMessageCount("totalMessageCount", false, false);
+decltype(Settings::printQuestFormID)	Settings::printQuestFormID("printQuestFormID", false, false);
+decltype(Settings::useRandomMessages)	Settings::useRandomMessages("useRandomMessages", false, false);
+decltype(Settings::totalMessageCount)	Settings::totalMessageCount("totalMessageCount", false, false);
