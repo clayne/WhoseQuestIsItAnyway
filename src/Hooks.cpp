@@ -3,7 +3,6 @@
 #include "skse64_common/BranchTrampoline.h"  // g_localTrampoline, g_branchTrampoline
 #include "skse64_common/Relocation.h"  // RelocAddr
 #include "skse64_common/SafeWrite.h"  // SafeWrite8
-#include "skse64/GameSettings.h"  // g_gameSettingCollection, Setting
 #include "xbyak/xbyak.h"  // xbyak
 
 #include <cassert>  // assert
@@ -44,8 +43,9 @@ namespace
 			auto notifManager = NotificationManager::GetSingleton();
 			RE::DebugNotification(notifManager->BuildNotification(quest).c_str(), a_arg2, a_arg3);
 		} else {
-			auto sDropQuestItemWarning = (*g_gameSettingCollection)->Get("sDropQuestItemWarning");
-			RE::DebugNotification(sDropQuestItemWarning->data.s, a_arg2, a_arg3);
+			auto collection = RE::GameSettingCollection::GetSingleton();
+			auto setting = collection->GetSetting("sDropQuestItemWarning");
+			RE::DebugNotification(setting->GetString(), a_arg2, a_arg3);
 		}
 	}
 
