@@ -164,7 +164,7 @@ namespace
 
 		g_branchTrampoline.Write5Call(funcBase.GetAddress() + CALL_HOOK, GetFnAddr(&Hook_DebugNotification));
 
-		_MESSAGE("[MESSAGE] Installed store hook");
+		_MESSAGE("Installed store hook");
 	}
 }
 
