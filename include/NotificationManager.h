@@ -1,30 +1,28 @@
 #pragma once
 
-#include <random>  // mt19937
-#include <string>  // string
+#include <random>
+#include <string>
 
-#include "RE/TESQuest.h"  // TESQuest
+#include "RE/Skyrim.h"
 
 
 class NotificationManager
 {
 public:
-	static NotificationManager*	GetSingleton();
-	static void					Free();
+	static NotificationManager* GetSingleton();
 
-	std::string					BuildNotification(RE::TESQuest* a_quest);
+	std::string BuildNotification(RE::TESQuest* a_quest);
 
 protected:
 	NotificationManager();
 	NotificationManager(const NotificationManager&) = delete;
 	NotificationManager(NotificationManager&&) = delete;
-	~NotificationManager();
+	~NotificationManager() = default;
 
 	NotificationManager& operator=(const NotificationManager&) = delete;
 	NotificationManager& operator=(NotificationManager&&) = delete;
 
 
-	static NotificationManager*	_singleton;
-	std::mt19937				_rng;
-	char						_buf[1000];
+	std::mt19937 _rng;
+	char _buf[1000];
 };

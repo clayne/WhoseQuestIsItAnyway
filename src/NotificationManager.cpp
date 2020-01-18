@@ -1,25 +1,16 @@
 #include "NotificationManager.h"
 
-#include <cstdio>  // snprintf
-#include <ctime>  // time
-#include <string>  // string, to_string
+#include <cstdio>
+#include <ctime>
+#include <string>
 
-#include "Settings.h"  // Settings
+#include "Settings.h"
 
 
 NotificationManager* NotificationManager::GetSingleton()
 {
-	if (!_singleton) {
-		_singleton = new NotificationManager();
-	}
-	return _singleton;
-}
-
-
-void NotificationManager::Free()
-{
-	delete _singleton;
-	_singleton = 0;
+	static NotificationManager singleton;
+	return &singleton;
 }
 
 
@@ -34,12 +25,12 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 	}
 	msg += "{";
 
-	bool foundQuestName = false;
-	if (!a_quest->name.empty()) {
-		msg += a_quest->name.c_str();
+	auto foundQuestName = false;
+	if (!a_quest->fullName.empty()) {
+		msg += a_quest->fullName.c_str();
 		foundQuestName = true;
-	} else if (!a_quest->editorID.empty()) {
-		msg += a_quest->editorID.c_str();
+	} else if (!a_quest->formEditorID.empty()) {
+		msg += a_quest->formEditorID.c_str();
 		foundQuestName = true;
 	}
 
@@ -47,7 +38,7 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 		if (foundQuestName) {
 			msg += " ";
 		}
-		std::snprintf(_buf, sizeof(_buf), "[0x%08X]", a_quest->formID);
+		std::snprintf(_buf, sizeof(_buf), "[0x%08X]", a_quest->GetFormID());
 		msg += _buf;
 	}
 
@@ -57,13 +48,6 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 
 
 NotificationManager::NotificationManager() :
-	_rng(std::time(0)),
+	_rng(std::random_device()()),
 	_buf{}
 {}
-
-
-NotificationManager::~NotificationManager()
-{}
-
-
-NotificationManager* NotificationManager::_singleton = 0;

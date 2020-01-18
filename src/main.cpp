@@ -1,9 +1,8 @@
-﻿#include "skse64_common/BranchTrampoline.h"  // g_branchTrampoline, g_localTrampoline
-#include "skse64_common/skse_version.h"  // RUNTIME_VERSION
+﻿#include "skse64_common/skse_version.h"
 
-#include "Hooks.h"  // InstallHooks
-#include "Settings.h"  // Settings
-#include "version.h"  // VERSION_VERSTRING, VERSION_MAJOR
+#include "Hooks.h"
+#include "Settings.h"
+#include "version.h"
 
 #include "SKSE/API.h"
 
@@ -28,11 +27,10 @@ extern "C" {
 		}
 
 		switch (a_skse->RuntimeVersion()) {
-		case RUNTIME_VERSION_1_5_73:
-		case RUNTIME_VERSION_1_5_80:
+		case RUNTIME_VERSION_1_5_97:
 			break;
 		default:
-			_FATALERROR("Unsupported runtime version %08X!\n", a_skse->RuntimeVersion());
+			_FATALERROR("Unsupported runtime version %s!\n", a_skse->UnmangledRuntimeVersion().c_str());
 			return false;
 		}
 
@@ -55,22 +53,11 @@ extern "C" {
 			return false;
 		}
 
-		if (g_branchTrampoline.Create(1024 * 8)) {
-			_MESSAGE("Branch trampoline creation successful");
-		} else {
-			_FATALERROR("Branch trampoline creation failed!\n");
+		if (!SKSE::AllocLocalTrampoline(1024 * 1) || !SKSE::AllocBranchTrampoline(1024 * 1)) {
 			return false;
 		}
 
-		if (g_localTrampoline.Create(1024 * 8)) {
-			_MESSAGE("Local trampoline creation successful");
-		} else {
-			_FATALERROR("Local trampoline creation failed!\n");
-			return false;
-		}
-
-		InstallHooks();
-		_MESSAGE("Hooks installed");
+		Hooks::Install();
 
 		return true;
 	}
