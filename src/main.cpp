@@ -1,6 +1,4 @@
-﻿#include "skse64_common/skse_version.h"
-
-#include "Hooks.h"
+﻿#include "Hooks.h"
 #include "Settings.h"
 #include "version.h"
 
@@ -14,6 +12,7 @@ extern "C" {
 		SKSE::Logger::SetPrintLevel(SKSE::Logger::Level::kDebugMessage);
 		SKSE::Logger::SetFlushLevel(SKSE::Logger::Level::kDebugMessage);
 		SKSE::Logger::UseLogStamp(true);
+		SKSE::Logger::TrackTrampolineStats(true);
 
 		_MESSAGE("WhoseQuestIsItAnyway v%s", WHQA_VERSION_VERSTRING);
 
@@ -22,15 +21,13 @@ extern "C" {
 		a_info->version = WHQA_VERSION_MAJOR;
 
 		if (a_skse->IsEditor()) {
-			_FATALERROR("Loaded in editor, marking as incompatible!\n");
+			_FATALERROR("Loaded in editor, marking as incompatible!");
 			return false;
 		}
 
-		switch (a_skse->RuntimeVersion()) {
-		case RUNTIME_VERSION_1_5_97:
-			break;
-		default:
-			_FATALERROR("Unsupported runtime version %s!\n", a_skse->UnmangledRuntimeVersion().c_str());
+		auto ver = a_skse->RuntimeVersion();
+		if (ver <= SKSE::RUNTIME_1_5_39) {
+			_FATALERROR("Unsupported runtime version %s!", ver.GetString().c_str());
 			return false;
 		}
 
@@ -46,14 +43,12 @@ extern "C" {
 			return false;
 		}
 
-		if (Settings::loadSettings()) {
-			_MESSAGE("Settings loaded");
-		} else {
-			_FATALERROR("Settings failed to load!\n");
+		if (!Settings::loadSettings()) {
+			_FATALERROR("Settings failed to load!");
 			return false;
 		}
 
-		if (!SKSE::AllocLocalTrampoline(1024 * 1) || !SKSE::AllocBranchTrampoline(1024 * 1)) {
+		if (!SKSE::AllocTrampoline(1 << 6)) {
 			return false;
 		}
 

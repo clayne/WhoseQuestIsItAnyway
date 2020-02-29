@@ -17,8 +17,8 @@ NotificationManager* NotificationManager::GetSingleton()
 std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 {
 	std::string msg = "$WHQA_Msg";
-	if (Settings::useRandomMessages) {
-		std::snprintf(_buf, sizeof(_buf), "%02i", (_rng() % Settings::totalMessageCount));
+	if (*Settings::useRandomMessages) {
+		std::snprintf(_buf, sizeof(_buf), "%02lli", (_rng() % *Settings::totalMessageCount));
 		msg += _buf;
 	} else {
 		msg += "00";
@@ -34,7 +34,7 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 		foundQuestName = true;
 	}
 
-	if (Settings::printQuestFormID) {
+	if (*Settings::printQuestFormID) {
 		if (foundQuestName) {
 			msg += " ";
 		}
