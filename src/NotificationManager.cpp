@@ -1,5 +1,4 @@
 #include "NotificationManager.h"
-
 #include <cstdio>
 #include <ctime>
 #include <string>
@@ -16,9 +15,10 @@ NotificationManager* NotificationManager::GetSingleton()
 
 std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 {
+	const auto& settings = Settings::GetSingleton();
 	std::string msg = "$WHQA_Msg";
-	if (*Settings::useRandomMessages) {
-		std::snprintf(_buf, sizeof(_buf), "%02lli", (_rng() % *Settings::totalMessageCount));
+	if (settings->useRandomMessages) {
+		std::snprintf(_buf, sizeof(_buf), "%02lli", (std::uint64_t)(_rng() % settings->totalMessageCount));
 		msg += _buf;
 	} else {
 		msg += "00";
@@ -34,7 +34,7 @@ std::string NotificationManager::BuildNotification(RE::TESQuest* a_quest)
 		foundQuestName = true;
 	}
 
-	if (*Settings::printQuestFormID) {
+	if (settings->printQuestFormID) {
 		if (foundQuestName) {
 			msg += " ";
 		}

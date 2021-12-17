@@ -1,59 +1,70 @@
-﻿#include "Hooks.h"
+#include "Hooks.h"
 #include "Settings.h"
 #include "version.h"
 
-#include "SKSE/API.h"
-
-
-extern "C" {
-	bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
-	{
-		SKSE::Logger::OpenRelative(FOLDERID_Documents, L"\\My Games\\Skyrim Special Edition\\SKSE\\WhoseQuestIsItAnyway.log");
-		SKSE::Logger::SetPrintLevel(SKSE::Logger::Level::kDebugMessage);
-		SKSE::Logger::SetFlushLevel(SKSE::Logger::Level::kDebugMessage);
-		SKSE::Logger::UseLogStamp(true);
-		SKSE::Logger::TrackTrampolineStats(true);
-
-		_MESSAGE("WhoseQuestIsItAnyway v%s", WHQA_VERSION_VERSTRING);
-
-		a_info->infoVersion = SKSE::PluginInfo::kVersion;
-		a_info->name = "WhoseQuestIsItAnyway";
-		a_info->version = WHQA_VERSION_MAJOR;
-
-		if (a_skse->IsEditor()) {
-			_FATALERROR("Loaded in editor, marking as incompatible!");
-			return false;
-		}
-
-		auto ver = a_skse->RuntimeVersion();
-		if (ver <= SKSE::RUNTIME_1_5_39) {
-			_FATALERROR("Unsupported runtime version %s!", ver.GetString().c_str());
-			return false;
-		}
-
-		return true;
+extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
+{
+#ifndef NDEBUG
+	auto sink = std::make_shared<spdlog::sinks::msvc_sink_mt>();
+#else
+	auto path = logger::log_directory();
+	if (!path) {
+		return false;
 	}
 
+	*path /= Version::PROJECT;
+	*path += ".log"sv;
+	auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+#endif
 
-	bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-	{
-		_MESSAGE("WhoseQuestIsItAnyway loaded");
+	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
-		if (!SKSE::Init(a_skse)) {
-			return false;
-		}
+#ifndef NDEBUG
+	log->set_level(spdlog::level::trace);
+#else
+	log->set_level(spdlog::level::info);
+	log->flush_on(spdlog::level::info);
+#endif
 
-		if (!Settings::loadSettings()) {
-			_FATALERROR("Settings failed to load!");
-			return false;
-		}
+	spdlog::set_default_logger(std::move(log));
+	spdlog::set_pattern("%s(%#): [%^%l%$] %v"s);
 
-		if (!SKSE::AllocTrampoline(1 << 6)) {
-			return false;
-		}
+	logger::info(FMT_STRING("{} v{}"), Version::PROJECT, Version::NAME);
 
-		Hooks::Install();
+	a_info->infoVersion = SKSE::PluginInfo::kVersion;
+	a_info->name = Version::PROJECT.data();
+	a_info->version = Version::MAJOR;
 
-		return true;
+	if (a_skse->IsEditor()) {
+		logger::critical("Loaded in editor, marking as incompatible"sv);
+		return false;
 	}
-};
+
+	const auto ver = a_skse->RuntimeVersion();
+	if (ver <
+#ifndef SKYRIMVR
+		SKSE::RUNTIME_1_5_39
+#else
+		SKSE::RUNTIME_VR_1_4_15
+#endif
+	) {
+		logger::critical(FMT_STRING("Unsupported runtime version {}"sv), ver.string());
+		return false;
+	}
+
+	return true;
+}
+
+extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
+{
+	logger::info("loaded");
+
+	SKSE::Init(a_skse);
+
+	const auto& settings = Settings::GetSingleton();
+	settings->Load();
+	SKSE::AllocTrampoline(56);
+	Hooks::Install();
+
+	return true;
+}

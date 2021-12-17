@@ -1,0 +1,16 @@
+{
+  "name": "whosequestisitanyway",
+  "version-string": "1.3.0",
+  "description": "Swaps the 'Quest items cannot be removed...' message for a more descriptive message informing you which quest the item belongs to.",
+  "homepage": "https://github.com/alandtse/WhoseQuestIsItAnyway",
+  "license": "MIT",
+  "dependencies": [
+    "boost-atomic",
+    "boost-stl-interfaces",
+    "rsm-binary-io",
+    "simpleini",
+    "span-lite",
+    "spdlog",
+    "xbyak"
+  ]
+}
