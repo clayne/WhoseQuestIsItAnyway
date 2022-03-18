@@ -112,7 +112,8 @@ target_precompile_headers(
 
 install(
 	DIRECTORY
-		"${DATA_DIR}"
+		"${DATA_DIR}/Interface"
+		"${DATA_DIR}/SKSE"
 	DESTINATION "/"
 	COMPONENT "main"
 )
