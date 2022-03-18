@@ -1,4 +1,0 @@
-LIBRARY	"WhoseQuestIsItAnyway"
-EXPORTS
-SKSEPlugin_Query
-SKSEPlugin_Load

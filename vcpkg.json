@@ -1,0 +1,13 @@
+{
+  "name": "example",
+  "version": "1",
+  "dependencies": [
+    "autotoml",
+    "boost-stl-interfaces",
+    "fmt",
+    "pcg",
+    "rsm-binary-io",
+    "spdlog",
+    "xbyak"
+  ]
+}

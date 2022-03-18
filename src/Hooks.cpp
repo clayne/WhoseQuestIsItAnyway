@@ -1,27 +1,61 @@
 #include "Hooks.h"
 
-#include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <string>
+#include "Notification.h"
 
-#include "NotificationManager.h"
+#define WIN32_LEAN_AND_MEAN
 
-#include "RE/Skyrim.h"
-#include "REL/Relocation.h"
-#include "SKSE/API.h"
-#include "SKSE/CodeGenerator.h"
-#include "SKSE/SafeWrite.h"
-#include "SKSE/Trampoline.h"
+#define NOGDICAPMASKS
+#define NOVIRTUALKEYCODES
+#define NOWINMESSAGES
+#define NOWINSTYLES
+#define NOSYSMETRICS
+#define NOMENUS
+#define NOICONS
+#define NOKEYSTATES
+#define NOSYSCOMMANDS
+#define NORASTEROPS
+#define NOSHOWWINDOW
+#define OEMRESOURCE
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+#define NOCTLMGR
+#define NODRAWTEXT
+#define NOGDI
+#define NOKERNEL
+#define NOUSER
+#define NONLS
+#define NOMB
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOMINMAX
+#define NOMSG
+#define NOOPENFILE
+#define NOSCROLL
+#define NOSERVICE
+#define NOSOUND
+#define NOTEXTMETRIC
+#define NOWH
+#define NOWINOFFSETS
+#define NOCOMM
+#define NOKANJI
+#define NOHELP
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+#define NOMCX
 
+#include <xbyak/xbyak.h>
 
 namespace Hooks
 {
 	namespace
 	{
-		void Hook_DebugNotification(RE::InventoryEntryData* a_entryData, const char* a_soundToPlay, bool a_cancelIfAlreadyQueued)
+		void Hook_DebugNotification(
+			RE::InventoryEntryData* a_entryData,
+			const char* a_soundToPlay,
+			bool a_cancelIfAlreadyQueued)
 		{
-			RE::TESQuest* quest = 0;
+			const RE::TESQuest* quest = 0;
 			if (a_entryData && a_entryData->extraLists) {
 				for (auto& xList : *a_entryData->extraLists) {
 					auto xAliasInstArr = xList->GetByType<RE::ExtraAliasInstanceArray>();
@@ -40,61 +74,54 @@ namespace Hooks
 			}
 
 			if (quest) {
-				auto mgr = NotificationManager::GetSingleton();
-				RE::DebugNotification(mgr->BuildNotification(quest).c_str(), a_soundToPlay, a_cancelIfAlreadyQueued);
+				RE::DebugNotification(Notification::Build(*quest).c_str(), a_soundToPlay, a_cancelIfAlreadyQueued);
 			} else {
 				static auto dropQuestItemWarning = RE::GameSettingCollection::GetSingleton()->GetSetting("sDropQuestItemWarning");
 				RE::DebugNotification(dropQuestItemWarning->GetString(), a_soundToPlay, a_cancelIfAlreadyQueued);
 			}
 		}
 
-
 		void InstallDropHook()
 		{
-			constexpr std::size_t CAVE_SIZE = 7;
-			constexpr std::size_t MOV_HOOK = 0x41;
-			constexpr std::size_t POP_START = 0x4D;
-			constexpr std::size_t JMP_HOOK = 0x55;
-			constexpr std::size_t CALL_BACK = 0x107;
-			constexpr UInt8 NOP = 0x90;
+			constexpr std::size_t MOV_HOOK = 0x3D;
+			constexpr std::size_t JMP_HOOK = 0x54;
+			constexpr std::size_t CALL_BACK = 0x108;
 
-			REL::Offset<std::uintptr_t> funcBase = REL::ID(50978);
+			REL::Relocation<std::uintptr_t> root{ REL::ID(51857) };
+
+			REL::make_pattern<"48 8B 0D ?? ?? ?? ?? 41 B0 01 33 D2 4C 8B 74 24 ?? 48 83 C4 48 5D 5B E9 ?? ?? ?? ??">()
+				.match_or_fail(root.address() + MOV_HOOK);
+
+			REL::make_pattern<"48 83 C4 48 5D 5B C3">()
+				.match_or_fail(root.address() + CALL_BACK);
 
 			// Move InventoryEntryData into rcx
 			{
-				struct Patch : SKSE::CodeGenerator
+				struct Patch :
+					public Xbyak::CodeGenerator
 				{
-					Patch() : SKSE::CodeGenerator(CAVE_SIZE)
+					Patch()
 					{
-						mov(rcx, r14);	// r14 = InventoryEntryData*
+						mov(rcx, r14);  // r14 = InventoryEntryData*
 					}
 				};
 
-				Patch patch;
-				patch.finalize();
+				Patch p;
+				p.ready();
 
-				std::size_t i = 0;
-				while (i < patch.getSize()) {
-					SKSE::SafeWrite8(funcBase.GetAddress() + MOV_HOOK + i, patch.getCode()[i]);
-					++i;
-				}
-
-				while (i < CAVE_SIZE) {
-					SKSE::SafeWrite8(funcBase.GetAddress() + MOV_HOOK + i, NOP);
-					++i;
-				}
-			}
-
-			// Prevent the function from popping off the stack
-			for (std::size_t i = POP_START; i < JMP_HOOK; ++i) {
-				SKSE::SafeWrite8(funcBase.GetAddress() + i, NOP);
+				assert(p.getSize() <= JMP_HOOK - MOV_HOOK);
+				REL::safe_fill(root.address() + MOV_HOOK, REL::NOP, JMP_HOOK - MOV_HOOK);
+				REL::safe_write(
+					root.address() + MOV_HOOK,
+					std::span{ p.getCode<const std::byte*>(), p.getSize() });
 			}
 
 			// Detour the jump
 			{
-				struct Patch : SKSE::CodeGenerator
+				struct Patch :
+					public Xbyak::CodeGenerator
 				{
-					Patch(std::size_t a_callAddr, std::size_t a_retAddr) : SKSE::CodeGenerator()
+					Patch(std::size_t a_callAddr, std::size_t a_retAddr)
 					{
 						Xbyak::Label callLbl;
 						Xbyak::Label retLbl;
@@ -110,61 +137,62 @@ namespace Hooks
 					}
 				};
 
-				Patch patch(unrestricted_cast<std::uintptr_t>(&Hook_DebugNotification), funcBase.GetAddress() + CALL_BACK);
-				patch.finalize();
+				Patch p(
+					reinterpret_cast<std::uintptr_t>(Hook_DebugNotification),
+					root.address() + CALL_BACK);
+				p.ready();
 
-				auto trampoline = SKSE::GetTrampoline();
-				trampoline->Write5Branch(funcBase.GetAddress() + JMP_HOOK, patch.getCode<std::uintptr_t>());
+				auto& trampoline = SKSE::GetTrampoline();
+				trampoline.write_branch<5>(
+					root.address() + JMP_HOOK,
+					trampoline.allocate(p));
 			}
 
-			_MESSAGE("Installed drop hook");
+			logger::debug("installed drop hook"sv);
 		}
-
 
 		void InstallStoreHook()
 		{
-			constexpr std::size_t CAVE_SIZE = 7;
-			constexpr std::size_t MOV_HOOK = 0x375;
-			constexpr std::size_t CALL_HOOK = 0x37C;
-			constexpr UInt8 NOP = 0x90;
+			constexpr std::size_t MOV_HOOK = 0x3A4;
+			constexpr std::size_t CALL_HOOK = 0x3AB;
 
-			REL::Offset<std::uintptr_t> funcBase = REL::ID(50212);
+			REL::Relocation<std::uintptr_t> root{ REL::ID(51141) };
 
-			struct Patch : SKSE::CodeGenerator
+			REL::make_pattern<"48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? C6 44 24 ?? ?? E9 ?? ?? ?? ??">()
+				.match_or_fail(root.address() + MOV_HOOK);
+
+			struct Patch :
+				public Xbyak::CodeGenerator
 			{
-				Patch() : SKSE::CodeGenerator(CAVE_SIZE)
+				Patch()
 				{
-					mov(rcx, r12);	// r12 = InventoryEntryData*
+					mov(rcx, r12);  // r12 = InventoryEntryData*
 				}
 			};
 
-			Patch patch;
-			patch.finalize();
+			Patch p;
+			p.ready();
 
-			std::size_t i = 0;
-			while (i < patch.getSize()) {
-				SKSE::SafeWrite8(funcBase.GetAddress() + MOV_HOOK + i, patch.getCode()[i]);
-				++i;
-			}
+			assert(p.getSize() <= CALL_HOOK - MOV_HOOK);
+			REL::safe_fill(root.address() + MOV_HOOK, REL::NOP, CALL_HOOK - MOV_HOOK);
+			REL::safe_write(
+				root.address() + MOV_HOOK,
+				std::span{ p.getCode<const std::byte*>(), p.getSize() });
 
-			while (i < CAVE_SIZE) {
-				SKSE::SafeWrite8(funcBase.GetAddress() + MOV_HOOK + i, NOP);
-				++i;
-			}
+			auto& trampoline = SKSE::GetTrampoline();
+			trampoline.write_call<5>(
+				root.address() + CALL_HOOK,
+				reinterpret_cast<std::uintptr_t>(Hook_DebugNotification));
 
-			auto trampoline = SKSE::GetTrampoline();
-			trampoline->Write5Call(funcBase.GetAddress() + CALL_HOOK, unrestricted_cast<std::uintptr_t>(&Hook_DebugNotification));
-
-			_MESSAGE("Installed store hook");
+			logger::debug("installed store hook"sv);
 		}
 	}
-
 
 	void Install()
 	{
 		InstallDropHook();
 		InstallStoreHook();
 
-		_MESSAGE("Hooks installed");
+		logger::debug("hooks installed"sv);
 	}
 }
