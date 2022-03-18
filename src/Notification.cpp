@@ -20,7 +20,7 @@ namespace Notification
 				}();
 				std::uniform_int_distribution<std::uint32_t> dist{
 					0,
-					static_cast<std::uint32_t>(*Settings::totalMessageCount)
+					static_cast<std::uint32_t>(std::max(*Settings::totalMessageCount - 1, 0ll))
 				};
 			} s;
 
@@ -50,7 +50,7 @@ namespace Notification
 			if (foundQuestName) {
 				msg += " ";
 			}
-			msg += fmt::format("{:08X}"sv, a_quest.GetFormID());
+			msg += fmt::format("[{:08X}]"sv, a_quest.GetFormID());
 		}
 
 		msg += "}";

@@ -83,14 +83,16 @@ namespace Hooks
 
 		void InstallDropHook()
 		{
-			constexpr std::size_t MOV_HOOK = 0x3D;
+			constexpr std::size_t MOV_START = 0x3D;
+			constexpr std::size_t MOV_END = 0x44;
+			constexpr std::size_t POP_START = 0x49;
 			constexpr std::size_t JMP_HOOK = 0x54;
 			constexpr std::size_t CALL_BACK = 0x108;
 
 			REL::Relocation<std::uintptr_t> root{ REL::ID(51857) };
 
 			REL::make_pattern<"48 8B 0D ?? ?? ?? ?? 41 B0 01 33 D2 4C 8B 74 24 ?? 48 83 C4 48 5D 5B E9 ?? ?? ?? ??">()
-				.match_or_fail(root.address() + MOV_HOOK);
+				.match_or_fail(root.address() + MOV_START);
 
 			REL::make_pattern<"48 83 C4 48 5D 5B C3">()
 				.match_or_fail(root.address() + CALL_BACK);
@@ -109,12 +111,15 @@ namespace Hooks
 				Patch p;
 				p.ready();
 
-				assert(p.getSize() <= JMP_HOOK - MOV_HOOK);
-				REL::safe_fill(root.address() + MOV_HOOK, REL::NOP, JMP_HOOK - MOV_HOOK);
+				assert(p.getSize() <= MOV_END - MOV_START);
+				REL::safe_fill(root.address() + MOV_START, REL::NOP, MOV_END - MOV_START);
 				REL::safe_write(
-					root.address() + MOV_HOOK,
+					root.address() + MOV_START,
 					std::span{ p.getCode<const std::byte*>(), p.getSize() });
 			}
+
+			// Prevent the function from popping off the stack
+			REL::safe_fill(root.address() + POP_START, REL::NOP, JMP_HOOK - POP_START);
 
 			// Detour the jump
 			{

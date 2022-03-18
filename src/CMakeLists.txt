@@ -145,8 +145,8 @@ if("${COPY_OUTPUT}")
 		COMMAND
 			"${CMAKE_COMMAND}"
 				-E
-				copy_if_different
-				${DATA_FILES}
+				copy_directory
+				${DATA_DIR}
 				"${Skyrim64Path}/Data/"
 		VERBATIM
 	)
